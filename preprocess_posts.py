@@ -6,7 +6,6 @@ import glob
 import logging
 import pandas as pd
 
-
 pd.set_option('display.max_rows', None)
 pd.set_option('display.max_colwidth', 80)
 pd.set_option('display.max_columns', None)
@@ -50,9 +49,6 @@ def main():
     args = parser.parse_args()
 
     df_posts = load_posts(args.input_data_path)
-
-    print(df_posts.head())
-    print(df_posts.tail())
 
     df_posts.to_parquet(args.output_file_name, index=False)
 
