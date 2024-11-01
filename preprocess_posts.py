@@ -13,18 +13,12 @@ from spacy.lang.fr.stop_words import STOP_WORDS as fr_stop
 from spacy.lang.en.stop_words import STOP_WORDS as en_stop
 from typing import List
 
-pd.set_option('display.max_rows', None)
-pd.set_option('display.max_colwidth', 60)
-pd.set_option('display.max_columns', None)
-pd.set_option('display.width', 220)
-
 logging.basicConfig(level=logging.DEBUG, 
                     format='[%(levelname)s] %(asctime)s - %(message)s')
 
 
 punctuation = set(string.punctuation)
 stopwords = list(fr_stop) + list(en_stop)
-
 # Words to remove, on top of punctuation, stop words, etc.
 misc_blocked = set([
     'e', 'h', 'q', 'nan', u'-', u'-ce', u'-elle', u'-en', u'-il', u'-là',
@@ -32,7 +26,6 @@ misc_blocked = set([
     u'faire', u'merci', u'l', u'd', u'c', u's', u'j', u'n', u'm', u'qu', u'thi',
     u'haver', u't'
 ])
-
 # Instantiate tokenizer class
 tokenizer = TweetTokenizer(preserve_case=False, strip_handles=True,
                            reduce_len=True)
@@ -107,7 +100,7 @@ def load_posts(input_data_path):
     csv_profiles = glob.glob(input_data_path, recursive=True)
     acc = []
     for f in csv_profiles:
-        source = f.split('/')[-2]
+        source = f.split('/')[-2] # Name of the dir containing the file
         df_tmp = pd.read_csv(
             f,
             usecols=twitter_columns,
@@ -124,6 +117,27 @@ def load_posts(input_data_path):
     logging.info(msg)
 
     return df
+
+
+def add_tokens_and_lemmas(df_posts):
+    tokens = df_posts['text'].map(cleanup)
+    df_posts['tokens'] = tokens.map(lambda x: ' '.join([w[0] for w in x]))
+    df_posts['lemmas'] = tokens.map(lambda x: ' '.join([w[1] for w in x]))
+
+    return df_posts
+
+
+def add_author_attributes(df_posts, attributes_file):
+    df_attr = pd.read_csv(attributes_file)
+    df_posts = pd.merge(df_posts, df_attr, how='left', on='author')
+
+    return df_posts
+
+
+def add_emoji_count(df_posts):
+    df_posts['emoji_count'] = df_posts['text'].map(count_emojis)
+
+    return df_posts
 
 
 def main():
@@ -146,14 +160,11 @@ def main():
     args = parser.parse_args()
 
     df_posts = load_posts(args.input_data_path)
-    # Tokenize and lemmatize
-    tokens = df_posts['text'].map(cleanup)
-    df_posts['tokens'] = tokens.map(lambda x: ' '.join([w[0] for w in x]))
-    df_posts['lemmas'] = tokens.map(lambda x: ' '.join([w[1] for w in x]))
+    df_posts = add_tokens_and_lemmas(df_posts)
+    df_posts = add_author_attributes(df_posts, ATTRIBUTES_FILE)
+    df_posts = add_emoji_count(df_posts)
 
-    logging.info(f"\n{df_posts.head()}")
-
-    # df_posts.to_parquet(args.output_file_name, index=False)
+    df_posts.to_parquet(args.output_file_name, index=False)
 
 
 if __name__ == "__main__":
