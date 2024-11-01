@@ -15,11 +15,6 @@ from tqdm.auto import tqdm
 openai.api_key = os.environ["OPENAI_API_KEY"]
 client = OpenAI()
 
-pd.set_option('display.max_rows', None)
-pd.set_option('display.max_colwidth', 50)
-pd.set_option('display.max_columns', None)
-pd.set_option('display.width', 260)
-
 logging.basicConfig(level=logging.DEBUG, 
                     format='[%(levelname)s] %(asctime)s - %(message)s')
 
@@ -243,8 +238,6 @@ def main():
 
     df_posts = pd.read_parquet(args.input_file_name)
     df_posts, df_topics = add_gpt_topics(df_posts)
-
-    logging.info(f"\n{df_posts.head(20)}")
 
     df_posts.to_parquet(args.output_file_name, index=False)
     df_topics.to_parquet(args.topics_file_name, index=False)
